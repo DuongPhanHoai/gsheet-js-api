@@ -1,0 +1,28 @@
+{
+  "name": "gsheet-js-api",
+  "version": "1.0.0",
+  "description": "Google sheet API for Automation report",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DuongPhanHoai/gsheet-js-api.git"
+  },
+  "keywords": [
+    "gsheet",
+    "api"
+  ],
+  "author": "DuongPhanHoai",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DuongPhanHoai/gsheet-js-api/issues"
+  },
+  "homepage": "https://github.com/DuongPhanHoai/cypress-demo#readme",
+  "dependencies": {
+    "googleapis": "^39",
+    "readline-sync": "*"
+  },
+  "devDependencies": {
+    "eslint": "^5.16.0"
+  }
+}

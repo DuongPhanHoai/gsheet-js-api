@@ -2,11 +2,11 @@ const fs = require('fs');
 const util = require('util');
 const mkdir = util.promisify(fs.mkdir);
 const { google } = require('googleapis');
-const { asyncGClientGetWebToken: asyncGClientGetWebToken, asyncReadRange } = require('./gUtil');
+const { asyncGClientGetWebToken: asyncGClientGetWebToken, asyncGSheetGet, asyncReadRange, asyncSetValueRange } = require('./gUtil');
 
 const TOKEN_DIR = 'gtokens';
 const TOKEN_PATH = 'token.json';
-const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
+const SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive'];
 
 let credentialsFilePath = "gsheet-auth.json";
 
@@ -55,7 +55,6 @@ class GSheet {
    * @param {String} sheetID the SheetID get from Web URL
    */
   constructor(sheetID) {
-    // getCredentials
     this.sheetID = sheetID;
   }
 
@@ -80,11 +79,57 @@ class GSheet {
    * @returns the response object which will need to dig in result rows as: const rows = res.data.values;
    */
   async readRange(sheetName, startCol, startRow, endCol, endRow) {
-    if (this.oAuth2Client) {
+    if (this.sheets) {
       const readResult = await asyncReadRange(this.sheets, this.sheetID, `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`);
       return readResult;
     }
     return null;
+  }
+
+  /**
+   * @name setValue
+   * @description  write the value to range
+   * @param {String} value value to write
+   * @param {String} writeRange Ex: 'targetResult!C10:C10'
+   */
+  async setValue(value, writeRange) {
+    if (this.sheets) {
+      const writeResult = asyncSetValueRange(this.sheets, this.sheetID, value, writeRange);
+      return writeResult;
+    }
+    return null;
+  }
+
+  async get() {
+    if (this.sheets) {
+      return asyncGSheetGet(this.sheets, this.sheetID, this.oAuth2Client);
+    }
+    
+  }
+  /**
+   * @name insertColumn
+   * @description insert a column the the colIndex
+   * @param {Number} columnIndex 
+   */
+  async insertColumn (columnIndex, sheetName) {
+    if (this.sheets) {
+      const sheetInfo  = await this.get();
+      let isheetID = -1;
+      if (sheetInfo && sheetInfo.data && sheetInfo.data.sheets && sheetInfo.data.sheets.length && sheetInfo.data.sheets.length > 0) {
+        const sheetsData = sheetInfo.data.sheets;
+        for (let sheetIndex = 0 ; sheetIndex < sheetsData.length ; sheetIndex ++) {
+          const scanName = sheetsData[sheetIndex].properties.title;
+          if (scanName.localeCompare(sheetName, 'en', { sensitivity: 'base' }) === 0) {
+            isheetID = sheetData.properties.sheetId;
+            break;
+          }
+        }
+        if (isheetID >= 0) {
+
+        }
+      }
+    }
+    return false;
   }
 }
 
@@ -115,6 +160,7 @@ async function getGSheet(sheetID) {
  * @param {String} endCol 
  * @param {Number} endRow
  * @param {String} sheetID the SheetID from URL
+ * @returns the response object which will need to dig in result rows as: const rows = res.data.values;
  */
 async function readRange(sheetName, startCol, startRow, endCol, endRow, sheetID) {
   const foundSheet = await getGSheet(sheetID);
@@ -123,7 +169,36 @@ async function readRange(sheetName, startCol, startRow, endCol, endRow, sheetID)
   return null;
 }
 
+/**
+ * @name setValue
+ * @description write the value to range
+ * @param {String} value value to write
+ * @param {String} writeRange Ex: 'targetResult!C10:C10'
+ * @param {String} sheetID sheetID which get from URL
+ */
+async function setValue(value, writeRange, sheetID) {
+  const foundSheet = await getGSheet(sheetID);
+  if (foundSheet)
+    return foundSheet.setValue(value, writeRange);
+  return null;
+}
+
+/**
+ * @name insertColumn
+ * @description insert a column the the colIndex
+ * @param {Number} columnIndex 
+ * @param {String} sheetID sheetID which get from URL
+ */
+async function insertColumn (columnIndex, sheetName, sheetID) {
+  const foundSheet = await getGSheet(sheetID);
+  if (foundSheet)
+    return foundSheet.insertColumn(columnIndex, sheetName);
+  return null;
+}
+
 module.exports = {
   getGSheet,
-  readRange
+  readRange,
+  setValue,
+  insertColumn
 }

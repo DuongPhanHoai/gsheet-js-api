@@ -34,7 +34,9 @@ class GReport {
           break;
         const rows = rangeValResponse.data.values;
         for (let rowIndex = 0; rowIndex < 10 && blankCount <= MAX_BLANK_ROW; rowIndex++) {
-          const scanName = rows[rowIndex][0];
+          let scanName = null;
+          if (rows[rowIndex] && (rows[rowIndex])[0])
+            scanName = (rows[rowIndex])[0];
           if (scanName) {
             blankCount = 0;
             this.maxRowIndex = (TEST_NAME_START_ROW + row10x * 10 + rowIndex); // now it is current index
@@ -57,15 +59,23 @@ class GReport {
     return -1;
   }
 
+  /**
+   * @name updateTestResultByName
+   * @description find and update test result in a sheet
+   * @param {String} testName 
+   * @param {String} testResult 
+   * @param {String} sheetName 
+   * @param {Boolean} overWriteResult TRUE: overwrite result; FALSE: create new line for result if duplicating
+   */
   async updateTestResultByName(testName, testResult, sheetName, overWriteResult) {
-    let foundTestRow = await findTestByName(testName, sheetName, overWriteResult);
+    let foundTestRow = await this.findTestByName(testName, sheetName, overWriteResult);
     if (foundTestRow > 0) {
-      setValue(testResult, `${sheetName}!${TEST_RESULT_COLUMN}${foundTestRow}:${TEST_RESULT_COLUMN}${foundTestRow}`, this.spreadSheetID);
+      await setValue(testResult, `${sheetName}!${TEST_RESULT_COLUMN}${foundTestRow}:${TEST_RESULT_COLUMN}${foundTestRow}`, this.spreadSheetID);
     }
     else {
       foundTestRow = this.maxRowIndex + 1;
-      setValue(testName, `${sheetName}!${TEST_NAME_COLUMN}${foundTestRow}:${TEST_NAME_COLUMN}${foundTestRow}`, this.spreadSheetID);
-      setValue(testResult, `${sheetName}!${TEST_RESULT_COLUMN}${foundTestRow}:${TEST_RESULT_COLUMN}${foundTestRow}`, this.spreadSheetID);
+      await setValue(testName, `${sheetName}!${TEST_NAME_COLUMN}${foundTestRow}:${TEST_NAME_COLUMN}${foundTestRow}`, this.spreadSheetID);
+      await setValue(testResult, `${sheetName}!${TEST_RESULT_COLUMN}${foundTestRow}:${TEST_RESULT_COLUMN}${foundTestRow}`, this.spreadSheetID);
     }
   }
   /**
@@ -116,6 +126,21 @@ async function findTestByName(testName, sheetName, allowExistingResult, spreadSh
 }
 
 /**
+ * @name updateTestResultByName
+ * @description find and update test result in a sheet
+ * @param {String} testName 
+ * @param {String} testResult 
+ * @param {String} sheetName 
+ * @param {Boolean} overWriteResult TRUE: overwrite result; FALSE: create new line for result if duplicating
+* @param {String} spreadSheetID the spreadSheetID from URL
+ */
+async function updateTestResultByName(testName, testResult, sheetName, overWriteResult, spreadSheetID) {
+  const foundReport = await getGReport(spreadSheetID);
+  if (foundReport)
+    await foundReport.updateTestResultByName(testName, testResult, sheetName, overWriteResult);
+}
+
+/**
  * @name createNewResultCol
  * @description create new result column
  * @param {String} sheetName 
@@ -131,5 +156,6 @@ async function createNewResultCol(sheetName, spreadSheetID) {
 
 module.exports = {
   findTestByName,
+  updateTestResultByName,
   createNewResultCol
 }

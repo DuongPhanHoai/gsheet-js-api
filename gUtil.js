@@ -26,7 +26,7 @@ async function asyncReadConsoleLine() {
  * @param {google.auth.OAuth2} oAuth2Client 
  * @param {String[]} SCOPES
  */
-async function asyncGClientGetWebOriginToken(oAuth2Client, SCOPES) {
+async function asyncGClientGetWebTokenFromConsole(oAuth2Client, SCOPES) {
   return new Promise(async function (resolve) {
     const authUrl = oAuth2Client.generateAuthUrl({
       access_type: 'offline',
@@ -49,7 +49,7 @@ async function asyncGClientGetWebOriginToken(oAuth2Client, SCOPES) {
  * @param {String[]} SCOPES
  */
 async function asyncGClientGetWebToken(tokenPath, oAuth2Client, SCOPES) {
-  const TOKEN_FROM_WEB = await asyncGClientGetWebOriginToken(oAuth2Client, SCOPES);
+  const TOKEN_FROM_WEB = await asyncGClientGetWebTokenFromConsole(oAuth2Client, SCOPES);
   return new Promise(function (resolve, reject) {
     // Get Token From Web
     console.log(`>>>>>> getToken TOKEN_FROM_WEB ${TOKEN_FROM_WEB}`);
@@ -66,54 +66,16 @@ async function asyncGClientGetWebToken(tokenPath, oAuth2Client, SCOPES) {
 }
 
 /**
- * @name asyncGSheetGet
- * @description get the Google sheet information
- * @param {google.sheets} sheets 
- * @param {String} inputSheetId 
- * @param {google.auth.OAuth2} authClient
- * @returns the response of getting spreadsheet info
- */
-async function asyncGSheetGet(sheets, inputSheetId, authClient) {
-  return new Promise(function (resolve, reject) {
-    if (sheets) {
-      var request = {
-        // The spreadsheet to request.
-        spreadsheetId: inputSheetId,  // TODO: Update placeholder value.
-
-        // The ranges to retrieve from the spreadsheet.
-        ranges: [],  // TODO: Update placeholder value.
-
-        // True if grid data should be returned.
-        // This parameter is ignored if a field mask was set in the request.
-        includeGridData: false,  // TODO: Update placeholder value.
-
-        auth: authClient,
-      };
-
-      sheets.spreadsheets.get(request, function (err, response) {
-        if (err) {
-          console.error(err);
-          reject(err);
-        }
-
-        // TODO: Change code below to process the `response` object:
-        resolve(response, null, 2);
-      });
-    }
-  });
-}
-
-/**
  * @name asyncReadRange
  * @description read the range to values
  * @param {google.sheets} sheets
- * @param {String} inputSheetId the sheet ID get from web
+ * @param {String} spreadSheetID the sheet ID get from web
  * @param {String} inputRange range to get values
  */
-async function asyncReadRange(sheets, inputSheetId, inputRange) {
+async function asyncReadRange(sheets, spreadSheetID, inputRange) {
   return new Promise(function (resolve, reject) {
     sheets.spreadsheets.values.get({
-      spreadsheetId: inputSheetId,
+      spreadsheetId: spreadSheetID,
       range: inputRange,
     }, (err, res) => {
       if (err)
@@ -127,17 +89,17 @@ async function asyncReadRange(sheets, inputSheetId, inputRange) {
  * @name asyncSetValueRange
  * @description write the value to range
  * @param {google.sheets} sheets
- * @param {String} inputSheetId the sheet ID get from web
+ * @param {String} spreadSheetID the sheet ID get from web
  * @param {String} value value to write
  * @param {String} writeRange Ex: 'targetResult!C10:C10'
  */
-async function asyncSetValueRange(sheets, inputSheetId, value, writeRange) {
+async function asyncSetValueRange(sheets, spreadSheetID, value, writeRange) {
   return new Promise(function (resolve, reject) {
     if (sheets) {
       const values = [[value],];
       const body = { values: values };
       sheets.spreadsheets.values.update({
-        spreadsheetId: inputSheetId,
+        spreadsheetId: spreadSheetID,
         range: writeRange,
         valueInputOption: 'USER_ENTERED',
         resource: body
@@ -150,11 +112,112 @@ async function asyncSetValueRange(sheets, inputSheetId, value, writeRange) {
   });
 }
 
+let bufferCombineSpreadIDWithNameID = [];
+function findInBuffer(spreadSheetID, sheetName) {
+  for (let i = 0; i < bufferCombineSpreadIDWithNameID.length; i++) {
+    const sheetInfo = bufferCombineSpreadIDWithNameID[i];
+    if (sheetInfo.spreadSheetID.localeCompare(spreadSheetID, 'en', { sensitivity: 'base' }) === 0 && sheetInfo.sheetName.localeCompare(sheetName, 'en', { sensitivity: 'base' }) === 0) {
+      return sheetInfo;
+    }
+  }
+  return null;
+}
+function pushToBuffer(spreadSheetID, sheetName, sheetID) {
+  for (let i = 0; i < bufferCombineSpreadIDWithNameID.length; i++) {
+    const sheetInfo = bufferCombineSpreadIDWithNameID[i];
+    if (sheetInfo.spreadSheetID.localeCompare(spreadSheetID, 'en', { sensitivity: 'base' }) === 0 && sheetInfo.sheetName.localeCompare(sheetName, 'en', { sensitivity: 'base' })) {
+      return sheetInfo;
+    }
+  }
+  const newSheetInfo = {
+    'spreadSheetID': spreadSheetID,
+    'sheetName': sheetName,
+    'sheetID': sheetID
+  };
+  bufferCombineSpreadIDWithNameID.push(newSheetInfo);
+  return newSheetInfo;
+}
+async function asyncGetSheetIDFromName(sheets, spreadSheetID, authClient, sheetName) {
+  // Send request to get sheetID
+  return new Promise(function (resolve, reject) {
+    const sheetInfo = findInBuffer(spreadSheetID, sheetName);
+    if (sheetInfo)
+      resolve(sheetInfo.sheetID);
+    else if (sheets) {
+      var request = {
+        // The spreadsheet to request.
+        spreadsheetId: spreadSheetID,  // TODO: Update placeholder value.
+
+        // The ranges to retrieve from the spreadsheet.
+        ranges: [],  // TODO: Update placeholder value.
+
+        // True if grid data should be returned.
+        // This parameter is ignored if a field mask was set in the request.
+        includeGridData: false,  // TODO: Update placeholder value.
+
+        auth: authClient,
+      };
+
+      sheets.spreadsheets.get(request, function (err, sheetInfo) {
+        if (err) {
+          console.error(err);
+          reject(-1);
+        }
+        if (sheetInfo.data && sheetInfo.data.sheets && sheetInfo.data.sheets.length && sheetInfo.data.sheets.length > 0) {
+          const sheetsData = sheetInfo.data.sheets;
+          for (let sheetIndex = 0; sheetIndex < sheetsData.length; sheetIndex++) {
+            const scanName = sheetsData[sheetIndex].properties.title;
+            pushToBuffer(spreadSheetID, scanName, sheetsData[sheetIndex].properties.sheetId);
+            if (scanName.localeCompare(sheetName, 'en', { sensitivity: 'base' }) === 0) {
+              isheetID = sheetsData[sheetIndex].properties.sheetId;
+              break;
+            }
+          }
+        }
+        resolve(isheetID);
+      });
+    }
+    else
+      reject(-1);
+  });
+}
+async function asyncInsertColumn(sheets, spreadSheetID, authClient, sheetName, colIndex) {
+  const sheetID = await asyncGetSheetIDFromName(sheets, spreadSheetID, authClient, sheetName);
+  return new Promise(function (resolve, reject) {
+    if (sheets && sheetID >= 0) {
+      const request = {
+        auth: authClient,
+        spreadsheetId: spreadSheetID,
+        resource: {
+          requests: [
+            {
+              'insertDimension': {
+                'range': {
+                  "sheetId": sheetID,
+                  "dimension": "COLUMNS",
+                  "startIndex": colIndex,
+                  "endIndex": (colIndex + 1)
+                },
+                'inheritFromBefore': false
+              }
+            }
+          ]
+        }
+      };
+      sheets.spreadsheets.batchUpdate(request, function (err, response) {
+        if (err)
+          console.error(err);
+        resolve(response);
+      });
+    }
+  });
+}
+
 
 module.exports = {
   asyncReadConsoleLine,
   asyncGClientGetWebToken,
-  asyncGSheetGet,
   asyncReadRange,
-  asyncSetValueRange
+  asyncSetValueRange,
+  asyncInsertColumn
 }

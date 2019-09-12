@@ -20,7 +20,8 @@
   "homepage": "https://github.com/DuongPhanHoai/cypress-demo#readme",
   "dependencies": {
     "googleapis": "^39",
-    "readline-sync": "*"
+    "readline-sync": "*",
+    "moment": "*"
   },
   "devDependencies": {
     "eslint": "^5.16.0"

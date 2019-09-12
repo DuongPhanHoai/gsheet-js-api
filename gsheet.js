@@ -2,7 +2,7 @@ const fs = require('fs');
 const util = require('util');
 const mkdir = util.promisify(fs.mkdir);
 const { google } = require('googleapis');
-const { asyncGClientGetWebToken: asyncGClientGetWebToken, asyncGSheetGet, asyncReadRange, asyncSetValueRange } = require('./gUtil');
+const { asyncGClientGetWebToken: asyncGClientGetWebToken, asyncReadRange, asyncSetValueRange, asyncInsertColumn } = require('./gUtil');
 
 const TOKEN_DIR = 'gtokens';
 const TOKEN_PATH = 'token.json';
@@ -52,10 +52,10 @@ async function getCredentials() {
 class GSheet {
   /**
    * @constructor
-   * @param {String} sheetID the SheetID get from Web URL
+   * @param {String} spreadSheetID the spreadSheetID get from Web URL
    */
-  constructor(sheetID) {
-    this.sheetID = sheetID;
+  constructor(spreadSheetID) {
+    this.spreadSheetID = spreadSheetID;
   }
 
   /**
@@ -80,7 +80,7 @@ class GSheet {
    */
   async readRange(sheetName, startCol, startRow, endCol, endRow) {
     if (this.sheets) {
-      const readResult = await asyncReadRange(this.sheets, this.sheetID, `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`);
+      const readResult = await asyncReadRange(this.sheets, this.spreadSheetID, `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`);
       return readResult;
     }
     return null;
@@ -94,61 +94,40 @@ class GSheet {
    */
   async setValue(value, writeRange) {
     if (this.sheets) {
-      const writeResult = asyncSetValueRange(this.sheets, this.sheetID, value, writeRange);
+      const writeResult = asyncSetValueRange(this.sheets, this.spreadSheetID, value, writeRange);
       return writeResult;
     }
     return null;
   }
 
-  async get() {
-    if (this.sheets) {
-      return asyncGSheetGet(this.sheets, this.sheetID, this.oAuth2Client);
-    }
-    
-  }
   /**
-   * @name insertColumn
-   * @description insert a column the the colIndex
+   * 
    * @param {Number} columnIndex 
+   * @param {String} sheetName 
    */
-  async insertColumn (columnIndex, sheetName) {
-    if (this.sheets) {
-      const sheetInfo  = await this.get();
-      let isheetID = -1;
-      if (sheetInfo && sheetInfo.data && sheetInfo.data.sheets && sheetInfo.data.sheets.length && sheetInfo.data.sheets.length > 0) {
-        const sheetsData = sheetInfo.data.sheets;
-        for (let sheetIndex = 0 ; sheetIndex < sheetsData.length ; sheetIndex ++) {
-          const scanName = sheetsData[sheetIndex].properties.title;
-          if (scanName.localeCompare(sheetName, 'en', { sensitivity: 'base' }) === 0) {
-            isheetID = sheetData.properties.sheetId;
-            break;
-          }
-        }
-        if (isheetID >= 0) {
-
-        }
-      }
-    }
-    return false;
+  async insertColumn(columnIndex, sheetName) {
+    if (this.sheets)
+      return await asyncInsertColumn(this.sheets, this.spreadSheetID, this.oAuth2Client, sheetName, columnIndex);
+    return null;
   }
 }
 
 let sheetSets = [];
 /**
  * @name getGSheet
- * @description the factory will help to get the right sheet object by it sheetID
- * @param {String} sheetID sheetID which get from URL
+ * @description the factory will help to get the right sheet object by it spreadSheetID
+ * @param {String} spreadSheetID spreadSheetID which get from URL
  */
-async function getGSheet(sheetID) {
+async function getGSheet(spreadSheetID) {
   // Check if sheet is in list
-  if (!sheetSets || !sheetSets[sheetID]) {
-    let newGSheet = new GSheet(sheetID);
+  if (!sheetSets || !sheetSets[spreadSheetID]) {
+    let newGSheet = new GSheet(spreadSheetID);
     await newGSheet.init();
-    sheetSets[sheetID] = newGSheet;
+    sheetSets[spreadSheetID] = newGSheet;
     return newGSheet;
   }
   else
-    return sheetSets[sheetID];
+    return sheetSets[spreadSheetID];
 }
 
 /**
@@ -159,13 +138,13 @@ async function getGSheet(sheetID) {
  * @param {Number} startRow 
  * @param {String} endCol 
  * @param {Number} endRow
- * @param {String} sheetID the SheetID from URL
+ * @param {String} spreadSheetID the spreadSheetID from URL
  * @returns the response object which will need to dig in result rows as: const rows = res.data.values;
  */
-async function readRange(sheetName, startCol, startRow, endCol, endRow, sheetID) {
-  const foundSheet = await getGSheet(sheetID);
+async function readRange(sheetName, startCol, startRow, endCol, endRow, spreadSheetID) {
+  const foundSheet = await getGSheet(spreadSheetID);
   if (foundSheet)
-    return foundSheet.readRange(sheetName, startCol, startRow, endCol, endRow);
+    return await foundSheet.readRange(sheetName, startCol, startRow, endCol, endRow);
   return null;
 }
 
@@ -174,12 +153,12 @@ async function readRange(sheetName, startCol, startRow, endCol, endRow, sheetID)
  * @description write the value to range
  * @param {String} value value to write
  * @param {String} writeRange Ex: 'targetResult!C10:C10'
- * @param {String} sheetID sheetID which get from URL
+ * @param {String} spreadSheetID spreadSheetID which get from URL
  */
-async function setValue(value, writeRange, sheetID) {
-  const foundSheet = await getGSheet(sheetID);
+async function setValue(value, writeRange, spreadSheetID) {
+  const foundSheet = await getGSheet(spreadSheetID);
   if (foundSheet)
-    return foundSheet.setValue(value, writeRange);
+    return await foundSheet.setValue(value, writeRange);
   return null;
 }
 
@@ -187,12 +166,12 @@ async function setValue(value, writeRange, sheetID) {
  * @name insertColumn
  * @description insert a column the the colIndex
  * @param {Number} columnIndex 
- * @param {String} sheetID sheetID which get from URL
+ * @param {String} spreadSheetID spreadSheetID which get from URL
  */
-async function insertColumn (columnIndex, sheetName, sheetID) {
-  const foundSheet = await getGSheet(sheetID);
+async function insertColumn(columnIndex, sheetName, spreadSheetID) {
+  const foundSheet = await getGSheet(spreadSheetID);
   if (foundSheet)
-    return foundSheet.insertColumn(columnIndex, sheetName);
+    return await foundSheet.insertColumn(columnIndex, sheetName);
   return null;
 }
 

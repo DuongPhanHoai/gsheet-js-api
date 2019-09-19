@@ -1,6 +1,6 @@
 node_modules
 backupToRemove
 token.json
-gtokens
+gconf
 /package-lock.json
 /.scannerwork

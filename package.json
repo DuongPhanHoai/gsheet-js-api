@@ -1,6 +1,6 @@
 {
   "name": "@davidkent/gsheet-js-api",
-  "version": "0.0.1",
+  "version": "0.0.5",
   "description": "Google sheet API for Automation report",
   "main": "index.js",
   "scripts": {},
@@ -25,5 +25,8 @@
   },
   "devDependencies": {
     "eslint": "^5.16.0"
+  },
+  "bin": {
+    "gsheet-js-api": "index.js"
   }
 }

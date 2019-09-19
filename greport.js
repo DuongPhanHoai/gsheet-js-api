@@ -15,7 +15,7 @@ class GReport {
    */
   constructor(spreadSheetID) {
     this.spreadSheetID = spreadSheetID;
-    this.maxRowIndex = 0;
+    this.maxRowIndex = TEST_NAME_START_ROW;
   }
 
   /**
@@ -73,7 +73,7 @@ class GReport {
       await setValue(testResult, `${sheetName}!${TEST_RESULT_COLUMN}${foundTestRow}:${TEST_RESULT_COLUMN}${foundTestRow}`, this.spreadSheetID);
     }
     else {
-      foundTestRow = this.maxRowIndex + 1;
+      foundTestRow = this.maxRowIndex;
       await setValue(testName, `${sheetName}!${TEST_NAME_COLUMN}${foundTestRow}:${TEST_NAME_COLUMN}${foundTestRow}`, this.spreadSheetID);
       await setValue(testResult, `${sheetName}!${TEST_RESULT_COLUMN}${foundTestRow}:${TEST_RESULT_COLUMN}${foundTestRow}`, this.spreadSheetID);
     }
@@ -121,7 +121,7 @@ async function getGReport(spreadSheetID) {
 async function findTestByName(testName, sheetName, allowExistingResult, spreadSheetID) {
   const foundReport = await getGReport(spreadSheetID);
   if (foundReport)
-    return foundReport.findTestByName(testName, sheetName, allowExistingResult);
+    return await foundReport.findTestByName(testName, sheetName, allowExistingResult);
   return -1;
 }
 

@@ -4,11 +4,17 @@ const mkdir = util.promisify(fs.mkdir);
 const { google } = require('googleapis');
 const { asyncGClientGetWebToken: asyncGClientGetWebToken, asyncReadRange, asyncSetValueRange, asyncInsertColumn } = require('./gUtil');
 
-const TOKEN_DIR = 'gtokens';
-const TOKEN_PATH = 'token.json';
+let GCONF_DIR = 'gconf';
+let GCONF_CREDENTIAL_FILE = "gsheet-auth.json";
+let GCONF_TOKEN_PATH = 'token.json';
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive'];
 
-let credentialsFilePath = "gsheet-auth.json";
+async function setConf(confDir = GCONF_DIR, confCredentialFile = GCONF_CREDENTIAL_FILE, confWebToken = GCONF_TOKEN_PATH) {
+  GCONF_DIR = confDir;
+  GCONF_CREDENTIAL_FILE = confCredentialFile;
+  GCONF_TOKEN_PATH = confWebToken;
+  await getCredentials();
+}
 
 /**
  * @name getCredentials
@@ -16,31 +22,31 @@ let credentialsFilePath = "gsheet-auth.json";
  */
 async function getCredentials() {
   // Get credential file path
-  if (process.env.GSHEET_AUTH)
-    credentialsFilePath = process.env.GSHEET_AUTH;
+  // if (process.env.GSHEET_AUTH)
+  //   credentialsFilePath = process.env.GSHEET_AUTH;
   // Check if credentials file is existed
-  if (!fs.existsSync(credentialsFilePath))
+  if (!fs.existsSync(`${GCONF_DIR}/${GCONF_CREDENTIAL_FILE}`))
     return null;
-  let content = await fs.readFileSync(credentialsFilePath, 'utf8');
+  let content = await fs.readFileSync(`${GCONF_DIR}/${GCONF_CREDENTIAL_FILE}`, 'utf8');
   const CREDENTIALS = JSON.parse(content);
   const { client_secret, client_id, redirect_uris } = CREDENTIALS.installed;
   const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
   // Check if Token dir is Exists
   let shouldCreateToken = false;
-  if (! await fs.existsSync(TOKEN_DIR)) {
+  if (! await fs.existsSync(GCONF_DIR)) {
     shouldCreateToken = true;
     // Create Token Directory
-    await mkdir(TOKEN_DIR);
+    await mkdir(GCONF_DIR);
   }
-  if (!shouldCreateToken && (! await fs.existsSync(`${TOKEN_DIR}/${TOKEN_PATH}`)))
+  if (!shouldCreateToken && (! await fs.existsSync(`${GCONF_DIR}/${GCONF_TOKEN_PATH}`)))
     shouldCreateToken = true;
   if (shouldCreateToken) {
-    await asyncGClientGetWebToken(`${TOKEN_DIR}/${TOKEN_PATH}`, oAuth2Client, SCOPES); // this function also setCredentials for oAuth2Client
+    await asyncGClientGetWebToken(`${GCONF_DIR}/${GCONF_TOKEN_PATH}`, oAuth2Client, SCOPES); // this function also setCredentials for oAuth2Client
   }
   else {
     // const tokenFromFile = fs.readFileSync(`${TOKEN_DIR}/${TOKEN_PATH}`, 'utf8');
-    const tokenFromFile = fs.readFileSync(`${TOKEN_DIR}/${TOKEN_PATH}`, 'utf8');
+    const tokenFromFile = fs.readFileSync(`${GCONF_DIR}/${GCONF_TOKEN_PATH}`, 'utf8');
     oAuth2Client.setCredentials(JSON.parse(tokenFromFile));
   }
   return oAuth2Client;
@@ -176,6 +182,7 @@ async function insertColumn(columnIndex, sheetName, spreadSheetID) {
 }
 
 module.exports = {
+  setConf,
   getGSheet,
   readRange,
   setValue,

@@ -9,4 +9,5 @@ run the command gsheet-js-api to init google authorization with parameter as:
  - --initCredentialFile : google credential file which download from google project
  - --initWebTokenfile : the file to save webtoken
 
- Ex: node gsheet-js-api --initDir gconf
+ Ex: gsheet-js-api --initDir gconf
+ Ex: node node_modules\@davidkent\gsheet-js-api\gsheet-js-api.js --initDir gconf

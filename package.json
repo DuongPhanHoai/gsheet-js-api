@@ -27,6 +27,6 @@
     "eslint": "^5.16.0"
   },
   "bin": {
-    "gsheet-js-api": "index.js"
+    "gsheet-js-api": "./gsheet-js-api.js"
   }
 }

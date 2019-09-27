@@ -18,4 +18,4 @@ for (let i = 0 ; i < args.length ; i ++) {
 }
 
 setConf(initDir, initCredentialFile, initWebTokenfile);
-console.log('End of init');
+console.log('End of google sheet init');

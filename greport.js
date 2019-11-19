@@ -92,7 +92,7 @@ class GReport {
 
       if (TEST_NAME_START_ROW > 2) {
         // ****** Write down old formulas ******
-        await setValues(oldColFormulas, `${sheetName}!${TEST_RESULT_COLUMN}1:${TEST_RESULT_COLUMN}${TEST_NAME_START_ROW - 2}`, this.spreadSheetID);
+        await setValues(oldColFormulas.data.values, `${sheetName}!${TEST_RESULT_COLUMN}1:${TEST_RESULT_COLUMN}${TEST_NAME_START_ROW - 2}`, this.spreadSheetID);
       }
     }
   }

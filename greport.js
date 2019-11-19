@@ -85,7 +85,7 @@ class GReport {
  */
   async createNewResultCol(sheetName) {
     // Copy from old column
-    const oldColFormulas = await readRange(sheetName, TEST_RESULT_COLUMN, 1, TEST_RESULT_COLUMN, TEST_NAME_START_ROW-2);
+    const oldColFormulas = await readRange(sheetName, TEST_RESULT_COLUMN, 1, TEST_RESULT_COLUMN, TEST_NAME_START_ROW-2, this.spreadSheetID);
     const insertColumnResult = await insertColumn(TEST_RESULT_COLUMN_INDEX, sheetName, this.spreadSheetID);
     if (insertColumnResult) {
       await setString(moment().format('YYYYMMDD-HHmmss'), `${sheetName}!${TEST_RESULT_COLUMN}${TEST_NAME_START_ROW - 1}:${TEST_RESULT_COLUMN}${TEST_NAME_START_ROW - 1}`, this.spreadSheetID);

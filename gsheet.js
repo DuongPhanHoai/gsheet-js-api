@@ -2,7 +2,7 @@ const fs = require('fs');
 const util = require('util');
 const mkdir = util.promisify(fs.mkdir);
 const { google } = require('googleapis');
-const { asyncGClientGetWebToken: asyncGClientGetWebToken, asyncReadRange, asyncSetValueRange, asyncInsertColumn } = require('./gUtil');
+const { asyncGClientGetWebToken, asyncReadRange, asyncSetStringRange, asyncSetValuesRange, asyncInsertColumn } = require('./gUtil');
 
 let GCONF_DIR = 'gconf';
 let GCONF_CREDENTIAL_FILE = "gsheet-auth.json";
@@ -93,14 +93,28 @@ class GSheet {
   }
 
   /**
-   * @name setValue
+   * @name setString
    * @description  write the value to range
    * @param {String} value value to write
    * @param {String} writeRange Ex: 'targetResult!C10:C10'
    */
-  async setValue(value, writeRange) {
+  async setString(value, writeRange) {
     if (this.sheets) {
-      const writeResult = asyncSetValueRange(this.sheets, this.spreadSheetID, value, writeRange);
+      const writeResult = asyncSetStringRange(this.sheets, this.spreadSheetID, value, writeRange);
+      return writeResult;
+    }
+    return null;
+  }
+
+  /**
+   * @name setValues
+   * @description  write the value to range
+   * @param {String} values value to write type of [[]]
+   * @param {String} writeRange Ex: 'targetResult!C10:C10'
+   */
+  async setValues(values, writeRange) {
+    if (this.sheets) {
+      const writeResult = asyncSetValuesRange(this.sheets, this.spreadSheetID, values, writeRange);
       return writeResult;
     }
     return null;
@@ -155,16 +169,30 @@ async function readRange(sheetName, startCol, startRow, endCol, endRow, spreadSh
 }
 
 /**
- * @name setValue
+ * @name setString
  * @description write the value to range
- * @param {String} value value to write
+ * @param {String} value value string to write
  * @param {String} writeRange Ex: 'targetResult!C10:C10'
  * @param {String} spreadSheetID spreadSheetID which get from URL
  */
-async function setValue(value, writeRange, spreadSheetID) {
+async function setString(value, writeRange, spreadSheetID) {
   const foundSheet = await getGSheet(spreadSheetID);
   if (foundSheet)
-    return await foundSheet.setValue(value, writeRange);
+    return await foundSheet.setString(value, writeRange);
+  return null;
+}
+
+/**
+ * @name setValues
+ * @description write the value to range
+ * @param {String} values value to write
+ * @param {String} writeRange Ex: 'targetResult!C10:C10'
+ * @param {String} spreadSheetID spreadSheetID which get from URL
+ */
+async function setValues(values, writeRange, spreadSheetID) {
+  const foundSheet = await getGSheet(spreadSheetID);
+  if (foundSheet)
+    return await foundSheet.setValues(values, writeRange);
   return null;
 }
 
@@ -185,6 +213,7 @@ module.exports = {
   setConf,
   getGSheet,
   readRange,
-  setValue,
+  setString,
+  setValues,
   insertColumn
 }

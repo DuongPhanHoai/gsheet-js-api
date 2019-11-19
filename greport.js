@@ -1,10 +1,10 @@
 const moment = require('moment');
-const { readRange, setValue, insertColumn } = require('./gsheet');
+const { readRange, setString, setValues, insertColumn } = require('./gsheet');
 
 const TEST_NAME_COLUMN = 'C';
 const TEST_RESULT_COLUMN = 'E';
 const TEST_RESULT_COLUMN_INDEX = 4;
-const TEST_NAME_START_ROW = 5;
+const TEST_NAME_START_ROW = 12;
 const MAX_BLANK_ROW = 5;
 
 class GReport {
@@ -70,12 +70,12 @@ class GReport {
   async updateTestResultByName(testName, testResult, sheetName, overWriteResult) {
     let foundTestRow = await this.findTestByName(testName, sheetName, overWriteResult);
     if (foundTestRow > 0) {
-      await setValue(testResult, `${sheetName}!${TEST_RESULT_COLUMN}${foundTestRow}:${TEST_RESULT_COLUMN}${foundTestRow}`, this.spreadSheetID);
+      await setString(testResult, `${sheetName}!${TEST_RESULT_COLUMN}${foundTestRow}:${TEST_RESULT_COLUMN}${foundTestRow}`, this.spreadSheetID);
     }
     else {
       foundTestRow = this.maxRowIndex + 1;
-      await setValue(testName, `${sheetName}!${TEST_NAME_COLUMN}${foundTestRow}:${TEST_NAME_COLUMN}${foundTestRow}`, this.spreadSheetID);
-      await setValue(testResult, `${sheetName}!${TEST_RESULT_COLUMN}${foundTestRow}:${TEST_RESULT_COLUMN}${foundTestRow}`, this.spreadSheetID);
+      await setString(testName, `${sheetName}!${TEST_NAME_COLUMN}${foundTestRow}:${TEST_NAME_COLUMN}${foundTestRow}`, this.spreadSheetID);
+      await setString(testResult, `${sheetName}!${TEST_RESULT_COLUMN}${foundTestRow}:${TEST_RESULT_COLUMN}${foundTestRow}`, this.spreadSheetID);
     }
   }
   /**
@@ -84,9 +84,17 @@ class GReport {
  * @param {String} sheetName
  */
   async createNewResultCol(sheetName) {
+    // Copy from old column
+    const oldColFormulas = await readRange(sheetName, TEST_RESULT_COLUMN, 1, TEST_RESULT_COLUMN, TEST_NAME_START_ROW-2);
     const insertColumnResult = await insertColumn(TEST_RESULT_COLUMN_INDEX, sheetName, this.spreadSheetID);
-    if (insertColumnResult)
-      await setValue(moment().format('YYYYMMDD-HHmmss'), `${sheetName}!${TEST_RESULT_COLUMN}${TEST_NAME_START_ROW - 1}:${TEST_RESULT_COLUMN}${TEST_NAME_START_ROW - 1}`, this.spreadSheetID);
+    if (insertColumnResult) {
+      await setString(moment().format('YYYYMMDD-HHmmss'), `${sheetName}!${TEST_RESULT_COLUMN}${TEST_NAME_START_ROW - 1}:${TEST_RESULT_COLUMN}${TEST_NAME_START_ROW - 1}`, this.spreadSheetID);
+
+      if (TEST_NAME_START_ROW > 2) {
+        // ****** Write down old formulas ******
+        await setValues(oldColFormulas, `${sheetName}!${TEST_RESULT_COLUMN}1:${TEST_RESULT_COLUMN}${TEST_NAME_START_ROW - 2}`, this.spreadSheetID);
+      }
+    }
   }
 
 }

@@ -86,18 +86,44 @@ async function asyncReadRange(sheets, spreadSheetID, inputRange) {
 }
 
 /**
- * @name asyncSetValueRange
+ * @name asyncSetStringRange
  * @description write the value to range
  * @param {google.sheets} sheets
  * @param {String} spreadSheetID the sheet ID get from web
  * @param {String} value value to write
  * @param {String} writeRange Ex: 'targetResult!C10:C10'
  */
-async function asyncSetValueRange(sheets, spreadSheetID, value, writeRange) {
+async function asyncSetStringRange(sheets, spreadSheetID, value, writeRange) {
   return new Promise(function (resolve, reject) {
     if (sheets) {
       const values = [[value],];
       const body = { values: values };
+      sheets.spreadsheets.values.update({
+        spreadsheetId: spreadSheetID,
+        range: writeRange,
+        valueInputOption: 'USER_ENTERED',
+        resource: body
+      }, (err, res) => {
+        if (err)
+          reject('The API returned an error: ' + err);
+        resolve(res);
+      });
+    }
+  });
+}
+
+/**
+ * @name asyncSetValuesRange
+ * @description write the value to range
+ * @param {google.sheets} sheets
+ * @param {String} spreadSheetID the sheet ID get from web
+ * @param {String} values value to write
+ * @param {String} writeRange Ex: 'targetResult!C10:C10'
+ */
+async function asyncSetValuesRange(sheets, spreadSheetID, values, writeRange) {
+  return new Promise(function (resolve, reject) {
+    if (sheets) {
+      const body = { 'values': values };
       sheets.spreadsheets.values.update({
         spreadsheetId: spreadSheetID,
         range: writeRange,
@@ -218,6 +244,7 @@ module.exports = {
   asyncReadConsoleLine,
   asyncGClientGetWebToken,
   asyncReadRange,
-  asyncSetValueRange,
+  asyncSetStringRange,
+  asyncSetValuesRange,
   asyncInsertColumn
 }

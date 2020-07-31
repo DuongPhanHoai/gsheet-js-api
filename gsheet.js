@@ -4,7 +4,7 @@ const mkdir = util.promisify(fs.mkdir);
 const { google } = require('googleapis');
 const { asyncGClientGetWebToken, asyncReadRange, asyncSetStringRange, asyncSetValuesRange, asyncInsertColumn } = require('./gUtil');
 
-const REQUEST_DURATION = 1050;//ms
+const REQUEST_DURATION = 1200;// sleep to prevent limitation of requests to google free account services
 
 let GCONF_DIR = 'gconf';
 let GCONF_CREDENTIAL_FILE = "gsheet-auth.json";

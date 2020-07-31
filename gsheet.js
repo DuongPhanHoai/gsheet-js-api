@@ -4,10 +4,24 @@ const mkdir = util.promisify(fs.mkdir);
 const { google } = require('googleapis');
 const { asyncGClientGetWebToken, asyncReadRange, asyncSetStringRange, asyncSetValuesRange, asyncInsertColumn } = require('./gUtil');
 
+const REQUEST_DURATION = 1001;//ms
+
 let GCONF_DIR = 'gconf';
 let GCONF_CREDENTIAL_FILE = "gsheet-auth.json";
 let GCONF_TOKEN_PATH = 'token.json';
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive'];
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+async function sleepByStart(ms, startTime) {
+  const end = new Date().getTime();
+  const durationMS = end - startTime;
+  if (durationMS < ms)
+    await sleep(durationMS - ms);
+}
 
 async function setConf(confDir = GCONF_DIR, confCredentialFile = GCONF_CREDENTIAL_FILE, confWebToken = GCONF_TOKEN_PATH) {
   GCONF_DIR = confDir;
@@ -85,9 +99,15 @@ class GSheet {
    * @returns the response object which will need to dig in result rows as: const rows = res.data.values;
    */
   async readRange(sheetName, startCol, startRow, endCol, endRow) {
-    if (this.sheets) {
-      const readResult = await asyncReadRange(this.sheets, this.spreadSheetID, `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`);
-      return readResult;
+    const startTime = new Date().getTime();
+    try {
+      if (this.sheets) {
+        const readResult = await asyncReadRange(this.sheets, this.spreadSheetID, `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`);
+        await sleepByStart(REQUEST_DURATION, startTime);
+        return readResult;
+      }
+    } catch (error) {
+      console.log(`readRange Error : ${error}`);
     }
     return null;
   }
@@ -99,9 +119,15 @@ class GSheet {
    * @param {String} writeRange Ex: 'targetResult!C10:C10'
    */
   async setString(value, writeRange) {
-    if (this.sheets) {
-      const writeResult = asyncSetStringRange(this.sheets, this.spreadSheetID, value, writeRange);
-      return writeResult;
+    const startTime = new Date().getTime();
+    try {
+      if (this.sheets) {
+        const writeResult = asyncSetStringRange(this.sheets, this.spreadSheetID, value, writeRange);
+        await sleepByStart(REQUEST_DURATION, startTime);
+        return writeResult;
+      }
+    } catch (error) {
+      console.log(`readRange Error : ${error}`);
     }
     return null;
   }
@@ -113,9 +139,15 @@ class GSheet {
    * @param {String} writeRange Ex: 'targetResult!C10:C10'
    */
   async setValues(values, writeRange) {
-    if (this.sheets) {
-      const writeResult = asyncSetValuesRange(this.sheets, this.spreadSheetID, values, writeRange);
-      return writeResult;
+    const startTime = new Date().getTime();
+    try {
+      if (this.sheets) {
+        const writeResult = asyncSetValuesRange(this.sheets, this.spreadSheetID, values, writeRange);
+        await sleepByStart(REQUEST_DURATION, startTime);
+        return writeResult;
+      }
+    } catch (error) {
+      console.log(`readRange Error : ${error}`);
     }
     return null;
   }
@@ -126,8 +158,16 @@ class GSheet {
    * @param {String} sheetName 
    */
   async insertColumn(columnIndex, sheetName) {
-    if (this.sheets)
-      return await asyncInsertColumn(this.sheets, this.spreadSheetID, this.oAuth2Client, sheetName, columnIndex);
+    const startTime = new Date().getTime();
+    try {
+      if (this.sheets) {
+        const runResult = await asyncInsertColumn(this.sheets, this.spreadSheetID, this.oAuth2Client, sheetName, columnIndex);
+        await sleepByStart(REQUEST_DURATION, startTime);
+        return runResult;
+      }
+    } catch (error) {
+      console.log(`readRange Error : ${error}`);
+    }
     return null;
   }
 }

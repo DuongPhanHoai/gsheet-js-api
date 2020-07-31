@@ -2,10 +2,11 @@ const moment = require('moment');
 const { readRange, setString, setValues, insertColumn } = require('./gsheet');
 
 const TEST_NAME_COLUMN = 'C';
-const TEST_RESULT_COLUMN = 'E';
-const TEST_RESULT_COLUMN_INDEX = 4;
+const TEST_RESULT_COLUMN = 'J';
+const TEST_RESULT_COLUMN_INDEX = 9;
 const TEST_NAME_START_ROW = 12;
 const MAX_BLANK_ROW = 5;
+const ROW_READ_COUNT = 200;
 
 class GReport {
 
@@ -28,18 +29,18 @@ class GReport {
   async findTestByName(testName, sheetName, allowExistingResult) {
     if (testName && sheetName) {
       let blankCount = 0;
-      for (let row10x = 0; row10x < 1000 && blankCount <= MAX_BLANK_ROW; row10x++) {
-        const rangeValResponse = await readRange(sheetName, TEST_NAME_COLUMN, TEST_NAME_START_ROW + row10x * 10, TEST_NAME_COLUMN, TEST_NAME_START_ROW + row10x * 10 + 10, this.spreadSheetID);
+      for (let rowGroupIndex = 0; rowGroupIndex < ROW_READ_COUNT && blankCount <= MAX_BLANK_ROW; rowGroupIndex++) {
+        const rangeValResponse = await readRange(sheetName, TEST_NAME_COLUMN, TEST_NAME_START_ROW + rowGroupIndex * ROW_READ_COUNT, TEST_NAME_COLUMN, TEST_NAME_START_ROW + rowGroupIndex * ROW_READ_COUNT + ROW_READ_COUNT, this.spreadSheetID);
         if (!rangeValResponse || !rangeValResponse.data || !rangeValResponse.data.values || !rangeValResponse.data.values.length)
           break;
         const rows = rangeValResponse.data.values;
-        for (let rowIndex = 0; rowIndex < 10 && blankCount <= MAX_BLANK_ROW; rowIndex++) {
+        for (let rowIndex = 0; rowIndex < ROW_READ_COUNT && blankCount <= MAX_BLANK_ROW; rowIndex++) {
           let scanName = null;
           if (rows[rowIndex] && (rows[rowIndex])[0])
             scanName = (rows[rowIndex])[0];
           if (scanName) {
             blankCount = 0;
-            this.maxRowIndex = (TEST_NAME_START_ROW + row10x * 10 + rowIndex); // now it is current index
+            this.maxRowIndex = (TEST_NAME_START_ROW + rowGroupIndex * ROW_READ_COUNT + rowIndex); // now it is current index
             if (scanName.localeCompare(testName, 'en', { sensitivity: 'base' }) === 0) {
               if (allowExistingResult)
                 return this.maxRowIndex;

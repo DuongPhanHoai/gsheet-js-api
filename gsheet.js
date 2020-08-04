@@ -5,6 +5,7 @@ const { google } = require('googleapis');
 const { asyncGClientGetWebToken, asyncReadRange, asyncSetStringRange, asyncSetValuesRange, asyncInsertColumn } = require('./gUtil');
 
 const REQUEST_DURATION = 1200;// sleep to prevent limitation of requests to google free account services
+const SLEEP_ON_ERROR = 5000;
 
 let GCONF_DIR = 'gconf';
 let GCONF_CREDENTIAL_FILE = "gsheet-auth.json";
@@ -100,16 +101,23 @@ class GSheet {
    */
   async readRange(sheetName, startCol, startRow, endCol, endRow) {
     const startTime = new Date().getTime();
+    let readResult = null;
     try {
       if (this.sheets) {
-        const readResult = await asyncReadRange(this.sheets, this.spreadSheetID, `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`);
+        readResult = await asyncReadRange(this.sheets, this.spreadSheetID, `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`);
         await sleepByStart(REQUEST_DURATION, startTime);
         return readResult;
       }
     } catch (error) {
-      console.log(`readRange Error : ${error}`);
+      console.error(`Retry once from readRange Error : ${error}`);
+      await sleep(SLEEP_ON_ERROR);// sleep 5s
+      try {
+        readResult = await asyncReadRange(this.sheets, this.spreadSheetID, `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`);
+      } catch (error) {
+        console.error(`Failed on readRange retry : ${error}`);
+      }
     }
-    return null;
+    return readResult;
   }
 
   /**
@@ -120,16 +128,23 @@ class GSheet {
    */
   async setString(value, writeRange) {
     const startTime = new Date().getTime();
+    let writeResult = null;
     try {
       if (this.sheets) {
-        const writeResult = asyncSetStringRange(this.sheets, this.spreadSheetID, value, writeRange);
+        writeResult = asyncSetStringRange(this.sheets, this.spreadSheetID, value, writeRange);
         await sleepByStart(REQUEST_DURATION, startTime);
         return writeResult;
       }
     } catch (error) {
-      console.log(`readRange Error : ${error}`);
+      console.error(`Retry once from setString Error : ${error}`);
+      await sleep(SLEEP_ON_ERROR);// sleep 5s
+      try {
+        writeResult = asyncSetStringRange(this.sheets, this.spreadSheetID, value, writeRange);
+      } catch (error) {
+        console.error(`Failed on setString retry : ${error}`);
+      }
     }
-    return null;
+    return writeResult;
   }
 
   /**
@@ -140,16 +155,23 @@ class GSheet {
    */
   async setValues(values, writeRange) {
     const startTime = new Date().getTime();
+    let writeResult = null;
     try {
       if (this.sheets) {
-        const writeResult = asyncSetValuesRange(this.sheets, this.spreadSheetID, values, writeRange);
+        writeResult = asyncSetValuesRange(this.sheets, this.spreadSheetID, values, writeRange);
         await sleepByStart(REQUEST_DURATION, startTime);
         return writeResult;
       }
     } catch (error) {
-      console.log(`readRange Error : ${error}`);
+      console.error(`Retry once from setValues Error : ${error}`);
+      await sleep(SLEEP_ON_ERROR);// sleep 5s
+      try {
+        writeResult = asyncSetValuesRange(this.sheets, this.spreadSheetID, values, writeRange);
+      } catch (error) {
+        console.error(`Failed on setValues retry : ${error}`);
+      }
     }
-    return null;
+    return writeResult;
   }
 
   /**
@@ -159,16 +181,23 @@ class GSheet {
    */
   async insertColumn(columnIndex, sheetName) {
     const startTime = new Date().getTime();
+    let runResult = null;
     try {
       if (this.sheets) {
-        const runResult = await asyncInsertColumn(this.sheets, this.spreadSheetID, this.oAuth2Client, sheetName, columnIndex);
+        runResult = await asyncInsertColumn(this.sheets, this.spreadSheetID, this.oAuth2Client, sheetName, columnIndex);
         await sleepByStart(REQUEST_DURATION, startTime);
         return runResult;
       }
     } catch (error) {
-      console.log(`readRange Error : ${error}`);
+      console.error(`Retry once from insertColumn Error : ${error}`);
+      await sleep(SLEEP_ON_ERROR);// sleep 5s
+      try {
+        runResult = await asyncInsertColumn(this.sheets, this.spreadSheetID, this.oAuth2Client, sheetName, columnIndex);
+      } catch (error) {
+        console.error(`Failed on insertColumn retry : ${error}`);
+      }
     }
-    return null;
+    return runResult;
   }
 }
 

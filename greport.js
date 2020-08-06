@@ -17,6 +17,7 @@ class GReport {
   constructor(spreadSheetID) {
     this.spreadSheetID = spreadSheetID;
     this.maxRowIndex = TEST_NAME_START_ROW;
+    this.lastRow = TEST_NAME_START_ROW;;
   }
 
   /**
@@ -41,6 +42,8 @@ class GReport {
           if (scanName) {
             blankCount = 0;
             this.maxRowIndex = (TEST_NAME_START_ROW + rowGroupIndex * ROW_READ_COUNT + rowIndex); // now it is current index
+            if (this.maxRowIndex > this.lastRow)
+              this.lastRow = this.maxRowIndex;
             if (scanName.localeCompare(testName, 'en', { sensitivity: 'base' }) === 0) {
               if (allowExistingResult)
                 return this.maxRowIndex;
@@ -74,7 +77,7 @@ class GReport {
       await setString(testResult, `${sheetName}!${TEST_RESULT_COLUMN}${foundTestRow}:${TEST_RESULT_COLUMN}${foundTestRow}`, this.spreadSheetID);
     }
     else {
-      foundTestRow = this.maxRowIndex + 1;
+      foundTestRow = ++this.lastRow;
       await setString(testName, `${sheetName}!${TEST_NAME_COLUMN}${foundTestRow}:${TEST_NAME_COLUMN}${foundTestRow}`, this.spreadSheetID);
       await setString(testResult, `${sheetName}!${TEST_RESULT_COLUMN}${foundTestRow}:${TEST_RESULT_COLUMN}${foundTestRow}`, this.spreadSheetID);
     }

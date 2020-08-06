@@ -1,6 +1,6 @@
 {
   "name": "@davidkent/gsheet-js-api",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "Google sheet API for Automation report",
   "main": "index.js",
   "scripts": {},

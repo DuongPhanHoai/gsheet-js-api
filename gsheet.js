@@ -4,7 +4,9 @@ const mkdir = util.promisify(fs.mkdir);
 const { google } = require('googleapis');
 const { asyncGClientGetWebToken, asyncReadRange, asyncSetStringRange, asyncSetValuesRange, asyncInsertColumn } = require('./gUtil');
 
-const REQUEST_DURATION = 1200;// sleep to prevent limitation of requests to google free account services
+let LAST_READ = new Date().getTime();
+let LAST_WRITE = new Date().getTime();
+const REQUEST_DURATION = 1050;// sleep to prevent limitation of requests to google free account services
 const SLEEP_ON_ERROR = 10000;
 
 let GCONF_DIR = 'gconf';
@@ -18,10 +20,9 @@ function sleep(ms) {
   });
 }
 async function sleepByStart(ms, startTime) {
-  const end = new Date().getTime();
-  const durationMS = end - startTime;
+  const durationMS = (new Date().getTime()) - startTime;
   if (durationMS < ms)
-    await sleep(durationMS - ms);
+    await sleep(ms - durationMS);
 }
 
 async function setConf(confDir = GCONF_DIR, confCredentialFile = GCONF_CREDENTIAL_FILE, confWebToken = GCONF_TOKEN_PATH) {
@@ -100,13 +101,13 @@ class GSheet {
    * @returns the response object which will need to dig in result rows as: const rows = res.data.values;
    */
   async readRange(sheetName, startCol, startRow, endCol, endRow) {
-    const startTime = new Date().getTime();
+    await sleepByStart(REQUEST_DURATION, LAST_READ);
+    LAST_READ = new Date().getTime();
     let readResult = null;
     let retry = false;
     try {
       if (this.sheets) {
         readResult = await asyncReadRange(this.sheets, this.spreadSheetID, `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`);
-        await sleepByStart(REQUEST_DURATION, startTime);
       }
     } catch (error) {
       retry = true;
@@ -115,8 +116,8 @@ class GSheet {
     if (retry) {
       await sleep(SLEEP_ON_ERROR);
       try {
+        LAST_READ = new Date().getTime();
         readResult = await asyncReadRange(this.sheets, this.spreadSheetID, `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`);
-        await sleepByStart(REQUEST_DURATION, startTime);
       } catch (error) {
         console.error(`${new Date().toUTCString()} - Failed on readRange retry : ${error}`);
       }
@@ -131,13 +132,13 @@ class GSheet {
    * @param {String} writeRange Ex: 'targetResult!C10:C10'
    */
   async setString(value, writeRange) {
-    const startTime = new Date().getTime();
+    await sleepByStart(REQUEST_DURATION, LAST_WRITE);
     let writeResult = null;
     let retry = false;
     try {
       if (this.sheets) {
+        LAST_WRITE = new Date().getTime();
         writeResult = asyncSetStringRange(this.sheets, this.spreadSheetID, value, writeRange);
-        await sleepByStart(REQUEST_DURATION, startTime);
       }
     } catch (error) {
       retry = true;
@@ -147,8 +148,8 @@ class GSheet {
     if (retry) {
       await sleep(SLEEP_ON_ERROR);
       try {
+        LAST_WRITE = new Date().getTime();
         writeResult = asyncSetStringRange(this.sheets, this.spreadSheetID, value, writeRange);
-        await sleepByStart(REQUEST_DURATION, startTime);
       } catch (error) {
         console.error(`${new Date().toUTCString()} - Failed on setString retry : ${error}`);
       }
@@ -163,13 +164,13 @@ class GSheet {
    * @param {String} writeRange Ex: 'targetResult!C10:C10'
    */
   async setValues(values, writeRange) {
-    const startTime = new Date().getTime();
+    await sleepByStart(REQUEST_DURATION, LAST_WRITE);
     let writeResult = null;
     let retry = false;
     try {
       if (this.sheets) {
+        LAST_WRITE = new Date().getTime();
         writeResult = asyncSetValuesRange(this.sheets, this.spreadSheetID, values, writeRange);
-        await sleepByStart(REQUEST_DURATION, startTime);
       }
     } catch (error) {
       retry = true;
@@ -178,8 +179,8 @@ class GSheet {
     if (retry) {
       await sleep(SLEEP_ON_ERROR);
       try {
+        LAST_WRITE = new Date().getTime();
         writeResult = asyncSetValuesRange(this.sheets, this.spreadSheetID, values, writeRange);
-        await sleepByStart(REQUEST_DURATION, startTime);
       } catch (error) {
         console.error(`${new Date().toUTCString()} - Failed on setValues retry : ${error}`);
       }
@@ -193,13 +194,13 @@ class GSheet {
    * @param {String} sheetName 
    */
   async insertColumn(columnIndex, sheetName) {
-    const startTime = new Date().getTime();
+    await sleepByStart(REQUEST_DURATION, LAST_WRITE);
     let runResult = null;
     let retry = false;
     try {
       if (this.sheets) {
+        LAST_WRITE = new Date().getTime();
         runResult = await asyncInsertColumn(this.sheets, this.spreadSheetID, this.oAuth2Client, sheetName, columnIndex);
-        await sleepByStart(REQUEST_DURATION, startTime);
       }
     } catch (error) {
       retry = true;
@@ -208,8 +209,8 @@ class GSheet {
     if (retry) {
       await sleep(SLEEP_ON_ERROR);// sleep 5s
       try {
-        runResult = await asyncInsertColumn(this.sheets, this.spreadSheetID, this.oAuth2Client, sheetName, columnIndex);
-        await sleepByStart(REQUEST_DURATION, startTime);
+        runResult = await asyncInsertColum
+        LAST_WRITE = new Date().getTime();n(this.sheets, this.spreadSheetID, this.oAuth2Client, sheetName, columnIndex);
       } catch (error) {
         console.error(`${new Date().toUTCString()} - Failed on insertColumn retry : ${error}`);
       }
